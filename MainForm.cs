@@ -1,5 +1,7 @@
 using System;
 using System.Windows.Forms;
+using System.Drawing;
+using System.Drawing.Drawing2D;
 
 namespace RockPaperScissorsGUI
 {
@@ -16,14 +18,22 @@ namespace RockPaperScissorsGUI
         public MainForm()
         {
             Text = "Ro Sham Bo";
-            Size = new System.Drawing.Size(400, 300);
+            Size = new System.Drawing.Size(1067, 800);
 
-            rockButton = new Button { Text = "Rock", Left = 50, Top = 50, Width = 100 };
-            paperButton = new Button { Text = "Paper", Left = 150, Top = 50, Width = 100 };
-            scissorsButton = new Button { Text = "Scissors", Left = 250, Top = 50, Width = 100 };
+            rockButton = new Button { Text = "Rock", Left = 50, Top = 50, Width = 400, Height = 400 };
+            paperButton = new Button { Text = "Paper", Left = 500, Top = 50, Width = 400, Height = 400 };
+            scissorsButton = new Button { Text = "Scissors", Left = 950, Top = 50, Width = 400, Height = 400 };
 
-            resultsLabel = new Label { Text = "", Left = 50, Top = 150, Width = 300, Height = 30 };
-            statsLabel = new Label { Text = "", Left = 50, Top = 200, Width = 300, Height = 30 };
+            rockButton.Paint += new PaintEventHandler(OnButtonPaint);
+            paperButton.Paint += new PaintEventHandler(OnButtonPaint);
+            scissorsButton.Paint += new PaintEventHandler(OnButtonPaint);
+
+            rockButton.Image = LoadImage(@"C:\Code\Git\CSE310\RoShamBo\RockPaperScissorsGUI\Images\Rock.jpg");
+            paperButton.Image = LoadImage(@"C:\Code\Git\CSE310\RoShamBo\RockPaperScissorsGUI\Images\Paper.jpg");
+            scissorsButton.Image = LoadImage(@"C:\Code\Git\CSE310\RoShamBo\RockPaperScissorsGUI\Images\Scissors.jpg");
+
+            resultsLabel = new Label { Text = "", Left = 50, Top = 500, Width = 1000, Height = 50, Font = new Font("Arial", 24) };
+            statsLabel = new Label { Text = "", Left = 50, Top = 600, Width = 1000, Height = 50, Font = new Font("Arial", 24) };
 
             rockButton.Click += new EventHandler(OnChoiceClick);
             paperButton.Click += new EventHandler(OnChoiceClick);
@@ -39,16 +49,31 @@ namespace RockPaperScissorsGUI
             rounds = wins = losses = draws = 0;
         }
 
-        private void OnChoiceClick(object sender, EventArgs e)
+        private Image? LoadImage(string path)
         {
-            string playerChoice = (sender as Button).Text;
-            string[] choices = { "Rock", "Paper", "Scissors" };
-            string computerChoice = choices[rand.Next(choices.Length)];
+            try
+            {
+                return Image.FromFile(path);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading image: {path}\n{ex.Message}");
+                return null;
+            }
+        }
 
-            string result = DetermineWinner(playerChoice, computerChoice);
-            resultsLabel.Text = $"Computer chose: {computerChoice}. {result}";
-            statsLabel.Text = $"Rounds: {rounds}, Wins: {wins}, Losses: {losses}, Draws: {draws}";
+        private void OnChoiceClick(object? sender, EventArgs e)
+        {
+            if (sender is Button button)
+            {
+                string playerChoice = button.Text;
+                string[] choices = { "Rock", "Paper", "Scissors" };
+                string computerChoice = choices[rand.Next(choices.Length)];
 
+                string result = DetermineWinner(playerChoice, computerChoice);
+                resultsLabel.Text = $"Your opponent Chose: {computerChoice}. {result}";
+                statsLabel.Text = $"Rounds: {rounds}, Wins: {wins}, Losses: {losses}, Draws: {draws}";
+            }
         }
 
         private string DetermineWinner(string playerChoice, string computerChoice)
@@ -69,9 +94,30 @@ namespace RockPaperScissorsGUI
             else
             {
                 losses++;
-                return "You lose!";
-
+                return "You lose! Try again!";
             }
         }
-    }   
+
+        private void OnButtonPaint(object? sender, PaintEventArgs e)
+        {
+            if (sender is Button button)
+            {
+                e.Graphics.Clear(button.BackColor);
+                if (button.Image != null)
+                {
+                    e.Graphics.DrawImage(button.Image, 0, 0, button.Width, button.Height);
+                }
+
+                using (Font font = new Font("Arial", 24, FontStyle.Bold))
+                using (StringFormat format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                using (GraphicsPath path = new GraphicsPath())
+                {
+                    path.AddString(button.Text, font.FontFamily, (int)font.Style, font.Size, new Rectangle(0, 0, button.Width, button.Height), format);
+                    e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                    e.Graphics.FillPath(Brushes.White, path);
+                    e.Graphics.DrawPath(new Pen(Color.Black, 1.5f), path);
+                }
+            }
+        }
+    }
 }
