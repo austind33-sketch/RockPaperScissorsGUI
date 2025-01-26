@@ -2,18 +2,34 @@ using System;
 using System.Windows.Forms;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 
 namespace RockPaperScissorsGUI
 {
-    public class MainForm : Form
+    public abstract class GameBase : Form
+    {
+        protected int rounds, wins, losses, draws;
+        protected Random rand;
+
+        public GameBase()
+        {
+            rand = new Random();
+            rounds = wins = losses = draws = 0;
+        }
+
+        protected abstract void OnChoiceClick(object? sender, EventArgs e);
+        protected abstract string DetermineWinner(string playerChoice, string computerChoice);
+        protected abstract void SaveStats();
+        protected abstract void LoadStats();
+    }
+
+    public class MainForm : GameBase
     {
         private Button rockButton;
         private Button paperButton;
         private Button scissorsButton;
         private Label resultsLabel;
         private Label statsLabel;
-        private Random rand;
-        private int rounds, wins, losses, draws;
 
         public MainForm()
         {
@@ -45,8 +61,7 @@ namespace RockPaperScissorsGUI
             Controls.Add(resultsLabel);
             Controls.Add(statsLabel);
 
-            rand = new Random();
-            rounds = wins = losses = draws = 0;
+            LoadStats();
         }
 
         private Image? LoadImage(string path)
@@ -62,7 +77,7 @@ namespace RockPaperScissorsGUI
             }
         }
 
-        private void OnChoiceClick(object? sender, EventArgs e)
+        protected override void OnChoiceClick(object? sender, EventArgs e)
         {
             if (sender is Button button)
             {
@@ -71,12 +86,14 @@ namespace RockPaperScissorsGUI
                 string computerChoice = choices[rand.Next(choices.Length)];
 
                 string result = DetermineWinner(playerChoice, computerChoice);
-                resultsLabel.Text = $"Your opponent Chose: {computerChoice}. {result}";
+                resultsLabel.Text = $"Computer chose: {computerChoice}. {result}";
                 statsLabel.Text = $"Rounds: {rounds}, Wins: {wins}, Losses: {losses}, Draws: {draws}";
+
+                SaveStats();
             }
         }
 
-        private string DetermineWinner(string playerChoice, string computerChoice)
+        protected override string DetermineWinner(string playerChoice, string computerChoice)
         {
             rounds++;
             if (playerChoice == computerChoice)
@@ -94,7 +111,32 @@ namespace RockPaperScissorsGUI
             else
             {
                 losses++;
-                return "You lose! Try again!";
+                return "You lose!";
+            }
+        }
+
+        protected override void SaveStats()
+        {
+            using (StreamWriter writer = new StreamWriter("stats.txt"))
+            {
+                writer.WriteLine(rounds);
+                writer.WriteLine(wins);
+                writer.WriteLine(losses);
+                writer.WriteLine(draws);
+            }
+        }
+
+        protected override void LoadStats()
+        {
+            if (File.Exists("stats.txt"))
+            {
+                using (StreamReader reader = new StreamReader("stats.txt"))
+                {
+                    rounds = int.Parse(reader.ReadLine() ?? "0");
+                    wins = int.Parse(reader.ReadLine() ?? "0");
+                    losses = int.Parse(reader.ReadLine() ?? "0");
+                    draws = int.Parse(reader.ReadLine() ?? "0");
+                }
             }
         }
 
@@ -120,4 +162,5 @@ namespace RockPaperScissorsGUI
             }
         }
     }
+
 }
